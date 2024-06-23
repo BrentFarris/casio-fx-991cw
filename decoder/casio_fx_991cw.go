@@ -5,11 +5,17 @@ import (
 	"strings"
 )
 
+const (
+	argCode    = "1A"
+	endArgCode = "1B"
+)
+
 func CasioFX991CW() Decoder {
 	d := New()
+	d.AddEncoding(Encoding{Key: endArgCode, Transform: ")"})
 	d.AddEncoding(Encoding{Key: "2E", Transform: "."})
-	d.AddEncoding(Encoding{Key: "C91A", Transform: "^("})
-	d.AddEncoding(Encoding{Key: "1B", Transform: ")"})
+	d.AddEncoding(Encoding{Key: "C0", Transform: "-"})
+	d.AddEncoding(Encoding{Key: "C9" + argCode, Transform: "^("})
 	d.AddEncoding(Encoding{Key: "A6", Transform: "+"})
 	d.AddEncoding(Encoding{Key: "A7", Transform: "-"})
 	d.AddEncoding(Encoding{Key: "A8", Transform: "×"})
@@ -23,10 +29,10 @@ func CasioFX991CW() Decoder {
 	d.AddEncoding(Encoding{Key: "7B", Transform: "cos^-1("})
 	d.AddEncoding(Encoding{Key: "7C", Transform: "tan^-1("})
 	d.AddEncoding(Encoding{Key: "7D", Transform: "log("})
-	d.AddEncoding(Encoding{Key: "741A", Transform: "sqrt("})
+	d.AddEncoding(Encoding{Key: "74" + argCode, Transform: "sqrt("})
 	d.AddEncoding(Encoding{Key: "75", Transform: "ln("})
 	d.AddEncoding(Encoding{
-		Key: "7D1A",
+		Key: "7D" + argCode,
 		TransformFunc: func(in string, out *strings.Builder) (int, error) {
 			out.WriteString("log")
 			read := 0
