@@ -21,15 +21,15 @@ const (
 )
 
 type Query struct {
-	Raw          string
-	I            string
-	U            string
-	M            string
-	S            string
-	Q            string
-	E            string
-	Answer       string
-	AnswerLength int
+	Raw     string
+	I       string
+	U       string
+	M       string
+	S       string
+	Q       string
+	E       string
+	Answer  string
+	Decimal int
 }
 
 func New(url string) Query {
@@ -60,15 +60,15 @@ func (q *Query) clean() {
 		q.Q = strings.TrimPrefix(q.Q, "Q-")
 		q.E = strings.TrimPrefix(q.E, "E-")
 		if length, err := strconv.Atoi(strings.TrimPrefix(q.Q[qNumberRange+2:28], "0")); err == nil {
-			q.AnswerLength = length + 1
+			q.Decimal = length + 1
 		}
 		num := q.Q[1 : qNumberRange+1]
-		if q.AnswerLength > qNumberRange {
+		if q.Decimal > qNumberRange {
 			// This is a decimal starting from 99 being 0.x and 98 being 0.0x
 			sb := strings.Builder{}
 			sb.WriteString("0.")
 			for i := range 100 - qNumberRange {
-				if 100-i == q.AnswerLength {
+				if 100-i == q.Decimal {
 					break
 				}
 				sb.WriteRune('0')
@@ -84,7 +84,21 @@ func (q *Query) clean() {
 			sb.WriteString(num[:end+1])
 			q.Answer = sb.String()
 		} else {
-			q.Answer = num[:q.AnswerLength]
+			a := strings.Builder{}
+			end := len(num) - 1
+			post := []rune(num)
+			for range post {
+				if post[end] != '0' {
+					break
+				}
+				end--
+			}
+			a.WriteString(num[:q.Decimal])
+			if end > q.Decimal {
+				a.WriteRune('.')
+				a.WriteString(num[q.Decimal : end+1])
+			}
+			q.Answer = a.String()
 		}
 	}
 }
