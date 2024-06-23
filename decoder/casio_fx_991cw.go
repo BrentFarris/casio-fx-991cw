@@ -1,6 +1,9 @@
 package decoder
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 func CasioFX991CW() Decoder {
 	d := New()
@@ -11,23 +14,43 @@ func CasioFX991CW() Decoder {
 	d.AddEncoding(Encoding{Key: "A7", Transform: "-"})
 	d.AddEncoding(Encoding{Key: "A8", Transform: "×"})
 	d.AddEncoding(Encoding{Key: "A9", Transform: "÷"})
-	d.AddEncoding(Encoding{Key: "603", Transform: "("})
+	d.AddEncoding(Encoding{Key: "60", Transform: "("})
 	d.AddEncoding(Encoding{Key: "D0", Transform: ")"})
-	d.AddEncoding(Encoding{Key: "773", Transform: "sin("})
-	d.AddEncoding(Encoding{Key: "783", Transform: "cos("})
-	d.AddEncoding(Encoding{Key: "793", Transform: "tan("})
+	d.AddEncoding(Encoding{Key: "77", Transform: "sin("})
+	d.AddEncoding(Encoding{Key: "78", Transform: "cos("})
+	d.AddEncoding(Encoding{Key: "79", Transform: "tan("})
 	d.AddEncoding(Encoding{Key: "7A", Transform: "sin^-1("})
 	d.AddEncoding(Encoding{Key: "7B", Transform: "cos^-1("})
 	d.AddEncoding(Encoding{Key: "7C", Transform: "tan^-1("})
 	d.AddEncoding(Encoding{Key: "7D", Transform: "log("})
-	d.AddEncoding(Encoding{Key: "7D1A", Transform: "log"})
 	d.AddEncoding(Encoding{Key: "741A", Transform: "sqrt("})
-	d.AddEncoding(Encoding{Key: "1C", Transform: ")"}) // 7D1A ending
+	d.AddEncoding(Encoding{Key: "75", Transform: "ln("})
+	d.AddEncoding(Encoding{
+		Key: "7D1A",
+		TransformFunc: func(in string, out *strings.Builder) (int, error) {
+			out.WriteString("log")
+			read := 0
+			for len(in) >= 2 && !strings.HasPrefix(in, "1C") {
+				if in[0] != '3' {
+					return 0, errors.New("currently only support constant log base")
+				}
+				out.WriteRune([]rune(in)[1])
+				in = in[2:]
+				read += 2
+			}
+			read += len("1C")
+			out.WriteString("(")
+			return read, nil
+		},
+	})
 	d.AddEncoding(Encoding{
 		Key: "3",
-		TransformFunc: func(in string, out *strings.Builder) int {
+		TransformFunc: func(in string, out *strings.Builder) (int, error) {
+			if in == "" {
+				return 0, errors.New("expected a constant after '3' encoding")
+			}
 			out.WriteRune([]rune(in)[0])
-			return 1
+			return 1, nil
 		},
 	})
 	return d
