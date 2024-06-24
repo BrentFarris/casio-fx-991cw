@@ -1,8 +1,8 @@
 package query
 
 import (
+	"casiofx991cw/parser"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -58,47 +58,7 @@ func (q *Query) IsSpreadsheet() bool { return q.T != "" }
 
 func (q *Query) cleanQ() {
 	if q.Q != "" {
-		if length, err := strconv.Atoi(strings.TrimPrefix(q.Q[qNumberRange+2:28], "0")); err == nil {
-			q.Decimal = length + 1
-		}
-		num := q.Q[1 : qNumberRange+1]
-		if q.Decimal > qNumberRange {
-			// This is a decimal starting from 99 being 0.x and 98 being 0.0x
-			sb := strings.Builder{}
-			sb.WriteString("0.")
-			for i := range 100 - qNumberRange {
-				if 100-i == q.Decimal {
-					break
-				}
-				sb.WriteRune('0')
-			}
-			// Write all the numbers up to the first occurrence of 0
-			end := len(num) - 1
-			for range len(num) {
-				if num[end] != '0' {
-					break
-				}
-				end--
-			}
-			sb.WriteString(num[:end+1])
-			q.Answer = sb.String()
-		} else {
-			a := strings.Builder{}
-			end := len(num) - 1
-			post := []rune(num)
-			for range post {
-				if post[end] != '0' {
-					break
-				}
-				end--
-			}
-			a.WriteString(num[:q.Decimal])
-			if end > q.Decimal {
-				a.WriteRune('.')
-				a.WriteString(num[q.Decimal : end+1])
-			}
-			q.Answer = a.String()
-		}
+		q.Answer, q.Decimal = parser.ReadNumber(q.Q[1:qNumberRange+1], q.Q[qNumberRange+2:28])
 	}
 }
 

@@ -1,12 +1,12 @@
 package decoder
 
 import (
+	"casiofx991cw/parser"
 	"casiofx991cw/query"
 	"casiofx991cw/spreadsheet"
 	"errors"
 	"fmt"
 	"slices"
-	"strconv"
 	"strings"
 )
 
@@ -65,11 +65,11 @@ func (d *Decoder) decodeE(query query.Query) (string, error) {
 	return sb.String(), nil
 }
 
-func (d *Decoder) decodeTable(query query.Query) (string, error) {
-	if !strings.HasPrefix(query.T, "SP") {
+func (d *Decoder) decodeTable(q query.Query) (string, error) {
+	if !strings.HasPrefix(q.T, "SP") {
 		return "", errors.New("invalid prefix to T, expected 'SP'")
 	}
-	t := query.T[2:]
+	t := q.T[2:]
 	// 12 character sequences for column lengths (5 entries)
 	if len(t) < 12*5 {
 		return "", errors.New("table prefix data is invalid")
@@ -100,11 +100,12 @@ func (d *Decoder) decodeTable(query query.Query) (string, error) {
 	sheet := spreadsheet.New(len(cols))
 	for i := range cols {
 		for j := range cols[i] {
-			count, err := strconv.Atoi(t[8:9])
-			if err != nil {
+			// The last number in the entry is the number of digits in sequence
+			// TODO:  Support fractions
+			cell, _ := parser.ReadNumber(t[:6], t[7:9])
+			if cell == "" {
 				return "", fmt.Errorf("failed to read the cell %d:%d data length", i, j)
 			}
-			cell := t[0 : count+1]
 			sheet.Columns[i] = append(sheet.Columns[i], cell)
 			t = t[9:]
 		}
