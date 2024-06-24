@@ -9,7 +9,7 @@ func ReadNumber(sequence, decimalCode string) (answer string, decimal int) {
 	if length, err := strconv.Atoi(strings.TrimPrefix(decimalCode, "0")); err == nil {
 		decimal = length + 1
 	}
-	if decimal > len(sequence) {
+	if decimal > 50 {
 		// This is a decimal starting from 99 being 0.x and 98 being 0.0x
 		sb := strings.Builder{}
 		sb.WriteString("0.")
@@ -39,10 +39,17 @@ func ReadNumber(sequence, decimalCode string) (answer string, decimal int) {
 			}
 			end--
 		}
-		a.WriteString(sequence[:decimal])
-		if end > decimal {
-			a.WriteRune('.')
-			a.WriteString(sequence[decimal : end+1])
+		if decimal > len(sequence) {
+			a.WriteString(sequence)
+			for range decimal - len(sequence) {
+				a.WriteRune('0')
+			}
+		} else {
+			a.WriteString(sequence[:decimal])
+			if end > decimal {
+				a.WriteRune('.')
+				a.WriteString(sequence[decimal : end+1])
+			}
 		}
 		answer = a.String()
 	}
