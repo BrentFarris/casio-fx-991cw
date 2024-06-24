@@ -5,10 +5,15 @@ import (
 	"casiofx991cw/query"
 	"casiofx991cw/spreadsheet"
 	"errors"
-	"fmt"
+	"math/bits"
 	"slices"
+	"strconv"
 	"strings"
 )
+
+type decodedTableColumn struct {
+	BitField [12]uint8
+}
 
 type Encoding struct {
 	Key           string
@@ -74,40 +79,32 @@ func (d *Decoder) decodeTable(q query.Query) (string, error) {
 	if len(t) < 12*5 {
 		return "", errors.New("table prefix data is invalid")
 	}
-	cols := make([]int, 5)
+	cols := make([]decodedTableColumn, 5)
+	dataCount := 0
 	for i := range 5 {
-		for _, r := range t[0:12] {
-			switch r {
-			case '8':
-				cols[i] += 1
-			case 'C':
-				cols[i] += 2
-			case 'E':
-				cols[i] += 3
-			case 'F':
-				cols[i] += 4
-			}
+		// This is a bit-field (4-bits), ever 4 rows (little-endian)
+		for j, r := range t[0:12] {
+			val, _ := strconv.ParseInt(string(r), 16, 8)
+			cols[i].BitField[j] = bits.Reverse8(uint8(val)) >> 4
+			dataCount += bits.OnesCount(uint(val))
 		}
 		t = t[12:]
 	}
-	sum := 0
-	for i := range cols {
-		sum += cols[i]
-	}
-	if len(t) < sum*9 {
+	if len(t) < dataCount*9 {
 		return "", errors.New("invalid payload data for the table")
 	}
 	sheet := spreadsheet.New(len(cols))
-	for i := range cols {
-		for j := range cols[i] {
-			// The last number in the entry is the number of digits in sequence
-			// TODO:  Support fractions
-			cell, _ := parser.ReadNumber(t[:6], t[7:9])
-			if cell == "" {
-				return "", fmt.Errorf("failed to read the cell %d:%d data length", i, j)
+	for x := range cols {
+		y := 0
+		for i := range cols[x].BitField {
+			for j := range 4 {
+				if (cols[x].BitField[i] & uint8(1<<j)) != 0 {
+					cell, _ := parser.ReadNumber(t[:6], t[7:9])
+					sheet.Insert(x, y, cell)
+					t = t[9:]
+				}
+				y++
 			}
-			sheet.Columns[i] = append(sheet.Columns[i], cell)
-			t = t[9:]
 		}
 	}
 	return sheet.String(), nil

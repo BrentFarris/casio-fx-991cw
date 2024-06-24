@@ -15,6 +15,18 @@ func New(columnCount int) Spreadsheet {
 	}
 }
 
+func (s *Spreadsheet) Insert(x, y int, data string) {
+	extraX := x - (len(s.Columns) - 1)
+	if extraX > 0 {
+		s.Columns = append(s.Columns, make([][]string, extraX)...)
+	}
+	extraY := y - (len(s.Columns[x]) - 1)
+	if extraY > 0 {
+		s.Columns[x] = append(s.Columns[x], make([]string, extraY)...)
+	}
+	s.Columns[x][y] = data
+}
+
 func (s Spreadsheet) RowCount() int {
 	rows := 0
 	for x := range s.Columns {
