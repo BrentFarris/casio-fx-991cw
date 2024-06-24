@@ -10,7 +10,7 @@ type Test struct {
 	URL      string
 }
 
-func TestCasioFX991CW(t *testing.T) {
+func TestCasioFX991CWCalculate(t *testing.T) {
 	tests := []Test{
 		{
 			Expected: "3×9=27",
@@ -78,7 +78,7 @@ func TestCasioFX991CW(t *testing.T) {
 			URL:      "http://wes.casio.com/ncal/index.php?q=I-005A+U-801100018E66+M-C10000AA00+S-001510100010001A1010B00006CC+Q-04000000000000000000000001000000000000000000000000000000+E-32C91A321B",
 		},
 		{
-			Expected: "sqrt(4)=2",
+			Expected: "√(4)=2",
 			URL:      "http://wes.casio.com/ncal/index.php?q=I-005A+U-801100018E66+M-C10000AA00+S-001510100010001A1010B00006CC+Q-02000000000000000000000001000000000000000000000000000000+E-741A341B",
 		},
 		{
@@ -129,6 +129,36 @@ func TestCasioFX991CW(t *testing.T) {
 		q := query.New(tests[i].URL)
 		if !q.IsValid() {
 			t.Errorf("test %d '%s' failed due to invalid query", i, tests[i].Expected)
+		}
+		res, err := d.Decode(q)
+		if err != nil {
+			t.Error(err.Error() + ". Current: " + res)
+		} else if res != tests[i].Expected {
+			t.Errorf("test %d failed; expected '%s' but got '%s'", i, tests[i].Expected, res)
+		}
+	}
+}
+
+func TestCasioFX991CWSpreadsheet(t *testing.T) {
+	tests := []Test{
+		{
+			Expected: `	A	B	C	D	E
+1	111111	222222	333333	444444	
+2	555555	666666	888888		
+3		777777	999999		
+4			0		
+5			111111		`,
+			URL: "http://wes.casio.com/ncal/index.php?q=I-005A+U-801100018E66+M-0D00000000+S-001510100010001A1010B000E894+T-SPC00000000000E00000000000F80000000000800000000000000000000000111111105555555105222222105666666105777777105333333105888888105999999105000000000111111105444444105",
+		},
+	}
+	d := CasioFX991CW()
+	for i := range tests {
+		q := query.New(tests[i].URL)
+		if !q.IsValid() {
+			t.Errorf("test %d '%s' failed due to invalid query", i, tests[i].Expected)
+		}
+		if !q.IsSpreadsheet() {
+			t.Errorf("test %d expected to be a spreadsheet but wasn't", i)
 		}
 		res, err := d.Decode(q)
 		if err != nil {

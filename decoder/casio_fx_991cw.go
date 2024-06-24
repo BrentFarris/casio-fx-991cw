@@ -10,6 +10,10 @@ const (
 	endArgCode = "1B"
 )
 
+type CasioFX991CWTable struct {
+	Columns [5][]string
+}
+
 func CasioFX991CW() Decoder {
 	d := New()
 	d.AddEncoding(Encoding{Key: endArgCode, Transform: ")"})

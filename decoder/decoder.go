@@ -2,8 +2,11 @@ package decoder
 
 import (
 	"casiofx991cw/query"
+	"casiofx991cw/spreadsheet"
 	"errors"
+	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -30,7 +33,7 @@ func (d *Decoder) AddEncoding(encoding Encoding) {
 	})
 }
 
-func (d *Decoder) Decode(query query.Query) (string, error) {
+func (d *Decoder) decodeE(query query.Query) (string, error) {
 	sb := strings.Builder{}
 	expr := query.E
 	for expr != "" {
@@ -60,4 +63,59 @@ func (d *Decoder) Decode(query query.Query) (string, error) {
 	sb.WriteRune('=')
 	sb.WriteString(query.Answer)
 	return sb.String(), nil
+}
+
+func (d *Decoder) decodeTable(query query.Query) (string, error) {
+	if !strings.HasPrefix(query.T, "SP") {
+		return "", errors.New("invalid prefix to T, expected 'SP'")
+	}
+	t := query.T[2:]
+	// 12 character sequences for column lengths (5 entries)
+	if len(t) < 12*5 {
+		return "", errors.New("table prefix data is invalid")
+	}
+	cols := make([]int, 5)
+	for i := range 5 {
+		for _, r := range t[0:12] {
+			switch r {
+			case '8':
+				cols[i] += 1
+			case 'C':
+				cols[i] += 2
+			case 'E':
+				cols[i] += 3
+			case 'F':
+				cols[i] += 4
+			}
+		}
+		t = t[12:]
+	}
+	sum := 0
+	for i := range cols {
+		sum += cols[i]
+	}
+	if len(t) < sum*9 {
+		return "", errors.New("invalid payload data for the table")
+	}
+	sheet := spreadsheet.New(len(cols))
+	for i := range cols {
+		for j := range cols[i] {
+			count, err := strconv.Atoi(t[8:9])
+			if err != nil {
+				return "", fmt.Errorf("failed to read the cell %d:%d data length", i, j)
+			}
+			cell := t[0 : count+1]
+			sheet.Columns[i] = append(sheet.Columns[i], cell)
+			t = t[9:]
+		}
+	}
+	return sheet.String(), nil
+}
+
+func (d *Decoder) Decode(query query.Query) (string, error) {
+	if query.IsSpreadsheet() {
+		return d.decodeTable(query)
+	} else {
+		return d.decodeE(query)
+	}
 }

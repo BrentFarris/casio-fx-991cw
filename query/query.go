@@ -14,6 +14,7 @@ var (
 	sre = regexp.MustCompile(`S-.*?(?:(\w-|$))`)
 	qre = regexp.MustCompile(`Q-.*?(?:(\w-|$))`)
 	ere = regexp.MustCompile(`E-.*?(?:(\w-|$))`)
+	tre = regexp.MustCompile(`T-.*?(?:(\w-|$))`)
 )
 
 const (
@@ -28,6 +29,7 @@ type Query struct {
 	S       string
 	Q       string
 	E       string
+	T       string
 	Answer  string
 	Decimal int
 }
@@ -46,19 +48,16 @@ func New(url string) Query {
 		S:   pullSegment(sre, query),
 		Q:   pullSegment(qre, query),
 		E:   pullSegment(ere, query),
+		T:   pullSegment(tre, query),
 	}
 	q.clean()
 	return q
 }
 
-func (q *Query) clean() {
-	if q.IsValid() {
-		q.I = strings.TrimPrefix(q.I, "I-")
-		q.U = strings.TrimPrefix(q.U, "U-")
-		q.M = strings.TrimPrefix(q.M, "M-")
-		q.S = strings.TrimPrefix(q.S, "S-")
-		q.Q = strings.TrimPrefix(q.Q, "Q-")
-		q.E = strings.TrimPrefix(q.E, "E-")
+func (q *Query) IsSpreadsheet() bool { return q.T != "" }
+
+func (q *Query) cleanQ() {
+	if q.Q != "" {
 		if length, err := strconv.Atoi(strings.TrimPrefix(q.Q[qNumberRange+2:28], "0")); err == nil {
 			q.Decimal = length + 1
 		}
@@ -103,8 +102,25 @@ func (q *Query) clean() {
 	}
 }
 
+func (q *Query) clean() {
+	if q.IsValid() {
+		q.I = strings.TrimPrefix(q.I, "I-")
+		q.U = strings.TrimPrefix(q.U, "U-")
+		q.M = strings.TrimPrefix(q.M, "M-")
+		q.S = strings.TrimPrefix(q.S, "S-")
+		q.Q = strings.TrimPrefix(q.Q, "Q-")
+		q.E = strings.TrimPrefix(q.E, "E-")
+		q.T = strings.TrimPrefix(q.T, "T-")
+		q.cleanQ()
+	}
+}
+
 func (q Query) IsValid() bool {
-	return q.I != "" && q.U != "" && q.M != "" && q.S != "" && q.Q != "" && q.E != ""
+	return q.I != "" &&
+		q.U != "" &&
+		q.M != "" &&
+		q.S != "" &&
+		((q.Q != "" && q.E != "") || q.T != "")
 }
 
 func pullSegment(reg *regexp.Regexp, query string) string {
