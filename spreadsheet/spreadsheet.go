@@ -5,6 +5,19 @@ import (
 	"strings"
 )
 
+var (
+	colKeys = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+)
+
+func extendSlice[T any](s []T, count int) []T {
+	extend := count - (len(s) - 1)
+	if extend > 0 {
+		return append(s, make([]T, extend)...)
+	} else {
+		return s
+	}
+}
+
 type Spreadsheet struct {
 	Columns [][]string
 }
@@ -16,14 +29,8 @@ func New(columnCount int) Spreadsheet {
 }
 
 func (s *Spreadsheet) Insert(x, y int, data string) {
-	extraX := x - (len(s.Columns) - 1)
-	if extraX > 0 {
-		s.Columns = append(s.Columns, make([][]string, extraX)...)
-	}
-	extraY := y - (len(s.Columns[x]) - 1)
-	if extraY > 0 {
-		s.Columns[x] = append(s.Columns[x], make([]string, extraY)...)
-	}
+	s.Columns = extendSlice(s.Columns, x)
+	s.Columns[x] = extendSlice(s.Columns[x], y)
 	s.Columns[x][y] = data
 }
 
@@ -36,10 +43,7 @@ func (s Spreadsheet) RowCount() int {
 }
 
 func (s Spreadsheet) Cell(x, y int) string {
-	if x >= len(s.Columns) {
-		return ""
-	}
-	if y >= len(s.Columns[x]) {
+	if x >= len(s.Columns) || y >= len(s.Columns[x]) {
 		return ""
 	}
 	return s.Columns[x][y]
@@ -48,7 +52,6 @@ func (s Spreadsheet) Cell(x, y int) string {
 func (s Spreadsheet) String() string {
 	sb := strings.Builder{}
 	cols := len(s.Columns)
-	colKeys := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	sb.WriteRune('\t')
 	for x := range cols {
 		sb.WriteRune(colKeys[x])
